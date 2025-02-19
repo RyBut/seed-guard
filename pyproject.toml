@@ -1,0 +1,22 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "seed-guard"
+version = "0.1.0"
+authors = [
+  { name="Ryan Butler", email="RyBut@mail.rybot.ca" },
+]
+description = "Secure seed phrase backup using Shamir's Secret Sharing"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/yourusername/seed-guard"
+"Bug Tracker" = "https://github.com/yourusername/seed-guard/issues"
