@@ -1,5 +1,4 @@
 import pytest
-from typing import List
 from itertools import combinations
 from seed_guard.bip39_shamir import BIP39Shamir
 
