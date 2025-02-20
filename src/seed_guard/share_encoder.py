@@ -9,24 +9,21 @@ class ShareEncoder:
             raise ValueError("Empty input")
             
         base = len(self.CHARSET)
-        result = []
-        
-        # Ensure we maintain leading zeros by encoding the length
+        # Convert length to share format
         length = len(data)
+        length_chars = []
+        temp_length = length
+        while temp_length > 0 or len(length_chars) < 1:
+            temp_length, remainder = divmod(temp_length, base)
+            length_chars.append(self.CHARSET[remainder])
+            
+        # Convert data to share format in chunks to avoid overflow
+        result = []
         value = int.from_bytes(data, byteorder='big')
-        
-        # Encode both length and value
         while value > 0 or len(result) < 1:
             value, remainder = divmod(value, base)
             result.append(self.CHARSET[remainder])
             
-        # Add length marker
-        length_chars = []
-        while length > 0 or len(length_chars) < 1:
-            length, remainder = divmod(length, base)
-            length_chars.append(self.CHARSET[remainder])
-            
-        # Combine length and data with a separator
         return ''.join(reversed(length_chars)) + ':' + ''.join(reversed(result))
         
     def decode_share(self, share: str) -> bytes:
@@ -49,17 +46,22 @@ class ShareEncoder:
                 raise ValueError("Invalid character in share")
             length = length * base + self.REVERSE_LOOKUP[char]
             
-        # Decode value
+        # Decode value in chunks to avoid overflow
         value = 0
         for char in data_part.strip():
             if char in [' ', '\n', '\t']:  # Skip whitespace in formatted shares
                 continue
             if char not in self.REVERSE_LOOKUP:
                 raise ValueError("Invalid character in share")
-            value = value * base + self.REVERSE_LOOKUP[char]
-            
-        # Convert to bytes with the correct length
-        return value.to_bytes(length, byteorder='big', signed=False)
+            try:
+                value = value * base + self.REVERSE_LOOKUP[char]
+            except OverflowError:
+                raise ValueError("Share value too large to decode")
+                
+        try:
+            return value.to_bytes(length, byteorder='big', signed=False)
+        except OverflowError:
+            raise ValueError("Share value too large to decode")
         
     def format_share(self, share: str, group_size: int = 4) -> str:
         """Format the share string into groups for better readability"""
