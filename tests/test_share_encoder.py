@@ -1,78 +1,68 @@
-class ShareEncoder:
-    CHARSET = "23456789ABCDEFGHJKLMNPQRTUXYabcdefhjkmnprtuy!@#$%^&*_-+=:;<,>.?/|"
+import pytest
+from seed_guard.share_encoder import ShareEncoder
+
+@pytest.fixture
+def encoder():
+    return ShareEncoder()
+
+def test_basic_encoding_decoding(encoder):
+    test_bytes = b'\x00\x03\x00\x00\x00\x01\x7f'
+    encoded = encoder.encode_share(test_bytes)
+    decoded = encoder.decode_share(encoded)
+    assert test_bytes == decoded
+
+def test_zero_bytes(encoder):
+    test_bytes = b'\x00\x00\x00\x00'
+    encoded = encoder.encode_share(test_bytes)
+    decoded = encoder.decode_share(encoded)
+    assert test_bytes == decoded
+
+def test_formatting(encoder):
+    test_bytes = b'\x01\x02\x03\x04\x05'
+    encoded = encoder.encode_share(test_bytes)
+    formatted = encoder.format_share(encoded, group_size=4)
     
-    def __init__(self):
-        self.REVERSE_LOOKUP = {char: idx for idx, char in enumerate(self.CHARSET)}
-        
-    def encode_share(self, data: bytes) -> str:
-        if not data:
-            raise ValueError("Empty input")
-            
-        base = len(self.CHARSET)
-        result = []
-        
-        # Ensure we maintain leading zeros by encoding the length
-        length = len(data)
-        value = int.from_bytes(data, byteorder='big')
-        
-        # Encode both length and value
-        while value > 0 or len(result) < 1:
-            value, remainder = divmod(value, base)
-            result.append(self.CHARSET[remainder])
-            
-        # Add length marker
-        length_chars = []
-        while length > 0 or len(length_chars) < 1:
-            length, remainder = divmod(length, base)
-            length_chars.append(self.CHARSET[remainder])
-            
-        # Combine length and data with a separator
-        return ''.join(reversed(length_chars)) + ':' + ''.join(reversed(result))
-        
-    def decode_share(self, share: str) -> bytes:
-        if not share:
-            raise ValueError("Empty input")
-            
-        # Remove any whitespace and split length and data
-        share = ''.join(share.split())
-        try:
-            length_part, data_part = share.split(':')
-        except ValueError:
-            length_part = '2'  # Default length for backward compatibility
-            data_part = share
-            
-        base = len(self.CHARSET)
-        
-        # Decode length
-        length = 0
-        for char in length_part:
-            if char not in self.REVERSE_LOOKUP:
-                raise ValueError("Invalid character in share")
-            length = length * base + self.REVERSE_LOOKUP[char]
-            
-        # Decode value
-        value = 0
-        for char in data_part:
-            if char not in self.REVERSE_LOOKUP:
-                raise ValueError("Invalid character in share")
-            value = value * base + self.REVERSE_LOOKUP[char]
-            
-        # Convert to bytes with the correct length
-        return value.to_bytes(length, byteorder='big', signed=False)
-        
-    def format_share(self, share: str, group_size: int = 4) -> str:
-        """Format the share string into groups for better readability"""
-        try:
-            length_part, data_part = share.split(':')
-            # Don't group the length part since it's typically short
-            formatted_data = ' '.join(
-                data_part[i:i+group_size] 
-                for i in range(0, len(data_part), group_size)
-            )
-            return f"{length_part}:" + formatted_data
-        except ValueError:
-            # If no separator, format the entire string
-            return ' '.join(
-                share[i:i+group_size] 
-                for i in range(0, len(share), group_size)
-            )
+    print(f"Encoded: {encoded}")
+    print(f"Formatted: {formatted}")
+    
+    # Split into prefix and data parts
+    prefix, data = formatted.split(':')
+    # Only check the groups in the data part
+    groups = data.split()
+    
+    print("Groups and their lengths:")
+    for group in groups:
+        print(f"{group}: {len(group)}")
+
+    # Check that formatting doesn't affect decoding
+    decoded_plain = encoder.decode_share(encoded)
+    decoded_formatted = encoder.decode_share(formatted)
+    assert decoded_plain == decoded_formatted
+    
+    # Verify group size
+    assert all(len(group) <= 4 for group in groups)
+
+def test_charset_validity(encoder):
+    # Test that all characters in charset are unique
+    assert len(encoder.CHARSET) == len(set(encoder.CHARSET))
+    
+    # Test that reverse lookup matches charset
+    for idx, char in enumerate(encoder.CHARSET):
+        assert encoder.REVERSE_LOOKUP[char] == idx
+
+def test_large_input(encoder):
+    test_bytes = bytes(range(32))  # 32 bytes of sequential data
+    encoded = encoder.encode_share(test_bytes)
+    decoded = encoder.decode_share(encoded)
+    assert test_bytes == decoded
+
+def test_invalid_input(encoder):
+    with pytest.raises(ValueError):
+        encoder.decode_share("Invalid&Characters")
+
+def test_empty_input(encoder):
+    with pytest.raises(ValueError):
+        encoder.encode_share(b'')
+    
+    with pytest.raises(ValueError):
+        encoder.decode_share('')

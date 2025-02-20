@@ -1,5 +1,5 @@
 class ShareEncoder:
-    CHARSET = "23456789ABCDEFGHJKLMNPQRTUXYabcdefhjkmnprtuy!@#$%^&*_-+=:;<,>.?/|"
+    CHARSET = "23456789ABCDEFGHJKLMNPQRTUXYabcdefhjkmnprtuy!@#$%^&*_-+=';<,>.?/|"
     
     def __init__(self):
         self.REVERSE_LOOKUP = {char: idx for idx, char in enumerate(self.CHARSET)}
@@ -63,20 +63,14 @@ class ShareEncoder:
         
     def format_share(self, share: str, group_size: int = 4) -> str:
         """Format the share string into groups for better readability"""
-        # Split into length and data parts
-        try:
-            length_part, data_part = share.split(':')
-        except ValueError:
-            length_part = ''
-            data_part = share
+        if ':' not in share:
+            return ' '.join(share[i:i+group_size] for i in range(0, len(share), group_size))
             
-        # Format data part into groups
-        formatted_data = ' '.join(
-            data_part[i:i+group_size] 
-            for i in range(0, len(data_part), group_size)
-        )
+        # Split into prefix and data
+        prefix, data = share.split(':')
         
-        # Return formatted string with length part if it exists
-        if length_part:
-            return f"{length_part}:{formatted_data}"
-        return formatted_data
+        # Format data part into groups
+        formatted_data = ' '.join(data[i:i+group_size] for i in range(0, len(data), group_size))
+        
+        # Combine with prefix
+        return prefix + ':' + formatted_data
