@@ -19,7 +19,7 @@ class BIP39Shamir:
         (13, 20282409603651670423947251286127),
         (14, 5192296858534827628530496329220121),
         (15, 1329227995784915872903807060280345027),
-        (16, 340282366920938463463374607431768211507),      # For secrets up to 16 bytes
+        (16, 340282366920938463463374607431768211507),  # For secrets up to 16 bytes
         (32, 2**255 - 19),     # For secrets up to 32 bytes
         (64, 2**511 - 187),    # For secrets up to 64 bytes
         (128, 2**1023 - 357)   # For secrets up to 128 bytes
@@ -52,6 +52,10 @@ class BIP39Shamir:
             raise ValueError("Threshold cannot be greater than total shares")
         if threshold < 2:
             raise ValueError("Threshold must be at least 2")
+        if shares > 255:
+            raise ValueError("Maximum 255 shares supported")
+        if threshold > 255:
+            raise ValueError("Maximum threshold of 255 supported")
 
         # Get appropriate prime field
         field_index, prime = self._get_prime_field(secret)
@@ -68,10 +72,8 @@ class BIP39Shamir:
         share_points = []
         for i in range(1, shares + 1):
             y = self._evaluate_polynomial(coefficients, i, prime)
-            # Pack field_index, threshold, x, y into share
-            # Format: field_index (1 byte) || threshold (1 byte) || x (4 bytes) || y (variable)
-            share_bytes = bytes([field_index, threshold]) + \
-                         i.to_bytes(4, 'big') + \
+            # Format: field_index (1 byte) || threshold (1 byte) || x (1 byte) || y (variable)
+            share_bytes = bytes([field_index, threshold, i]) + \
                          y.to_bytes((y.bit_length() + 7) // 8, 'big')
             share_points.append(share_bytes)
 
@@ -82,6 +84,9 @@ class BIP39Shamir:
             raise ValueError("No shares provided")
 
         # Extract field index and threshold from first share
+        if len(shares[0]) < 3:  # Minimum share length: field_index + threshold + x
+            raise ValueError("Invalid share format")
+            
         field_index = shares[0][0]
         threshold = shares[0][1]
         
@@ -96,7 +101,7 @@ class BIP39Shamir:
         # Process shares
         points = []
         for share in shares:
-            if len(share) < 6:  # 1 (field_index) + 1 (threshold) + 4 (x coordinate)
+            if len(share) < 3:
                 raise ValueError("Invalid share format")
             
             share_field_index = share[0]
@@ -107,15 +112,15 @@ class BIP39Shamir:
             if share_threshold != threshold:
                 raise ValueError("Shares from different threshold schemes")
             
-            x = int.from_bytes(share[2:6], 'big')
-            y = int.from_bytes(share[6:], 'big')
+            x = share[2]
+            y = int.from_bytes(share[3:], 'big')
             points.append((x, y))
 
         # Lagrange interpolation
         secret = 0
-        for i, (xi, yi) in enumerate(points):
+        for i, (xi, yi) in enumerate(points[:threshold]):  # Only use required number of shares
             numerator = denominator = 1
-            for j, (xj, _) in enumerate(points):
+            for j, (xj, _) in enumerate(points[:threshold]):
                 if i == j:
                     continue
                 numerator = (numerator * -xj) % prime
