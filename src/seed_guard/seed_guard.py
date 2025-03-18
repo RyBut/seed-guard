@@ -13,7 +13,7 @@ class SeedGuard:
         self.encryptor = BIP39Encryptor()
         self.shamir = BIP39Shamir()
         self.encoder = ShareEncoder()
-        self.splitter = SecretSplitter(split_ratio=0.8)
+        self.splitter = SecretSplitter(split_ratio=0.95)
 
     def encode_seed_phrase(
         self, 
@@ -21,9 +21,9 @@ class SeedGuard:
         shares_required: int, 
         shares_total: int,
         password: Optional[str] = None
-    ) -> Tuple[bytes, List[str]]:
+    ) -> Tuple[str, List[str]]:
         """
-        Convert a seed phrase into a primary piece and encoded shares.
+        Convert a seed phrase into an encoded primary piece and encoded shares.
 
         Args:
             seed_words: List of 12 or 24 BIP39 words
@@ -33,7 +33,7 @@ class SeedGuard:
 
         Returns:
             Tuple containing:
-                - Primary piece as bytes
+                - Primary piece as encoded string
                 - List of encoded shares as strings
 
         Raises:
@@ -51,25 +51,28 @@ class SeedGuard:
         # Split into primary and secondary pieces
         primary, secondary = self.splitter.split(encrypted)
 
+        # Encode primary piece
+        encoded_primary = self.encoder.encode_share(primary)
+
         # Split secondary piece into shares
         shares = self.shamir.split(secondary, shares_total, shares_required)
 
         # Encode shares
         encoded_shares = [self.encoder.encode_share(share) for share in shares]
 
-        return primary, encoded_shares
+        return encoded_primary, encoded_shares
 
     def decode_shares(
         self, 
-        primary: bytes,
+        encoded_primary: str,
         shares: List[str],
         password: Optional[str] = None
     ) -> List[str]:
         """
-        Reconstruct seed phrase from primary piece and shares.
+        Reconstruct seed phrase from encoded primary piece and shares.
 
         Args:
-            primary: Primary piece as bytes
+            encoded_primary: Primary piece as encoded string
             shares: List of encoded shares
             password: Optional decryption password (must match encoding password)
 
@@ -79,6 +82,9 @@ class SeedGuard:
         Raises:
             ValueError: If shares are invalid or insufficient
         """
+        # Decode primary piece
+        primary = self.encoder.decode_share(encoded_primary)
+
         # Decode shares from string format
         decoded_shares = [self.encoder.decode_share(share) for share in shares]
 
