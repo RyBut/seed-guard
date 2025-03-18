@@ -1,5 +1,5 @@
 class SecretSplitter:
-    def __init__(self, split_ratio=0.9):
+    def __init__(self, split_ratio=0.95):
         if not 0 < split_ratio < 1:
             raise ValueError("Split ratio must be between 0 and 1")
         self.split_ratio = split_ratio
