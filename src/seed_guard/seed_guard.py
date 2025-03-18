@@ -1,9 +1,10 @@
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from .bip39 import BIP39
 from .bip39_compression import BIP39Compression
 from .bip39_encryptor import BIP39Encryptor
 from .bip39_shamir import BIP39Shamir
 from .share_encoder import ShareEncoder
+from .secret_splitter import SecretSplitter
 
 class SeedGuard:
     def __init__(self):
@@ -12,6 +13,7 @@ class SeedGuard:
         self.encryptor = BIP39Encryptor()
         self.shamir = BIP39Shamir()
         self.encoder = ShareEncoder()
+        self.splitter = SecretSplitter(split_ratio=0.8)
 
     def encode_seed_phrase(
         self, 
@@ -19,9 +21,9 @@ class SeedGuard:
         shares_required: int, 
         shares_total: int,
         password: Optional[str] = None
-    ) -> List[str]:
+    ) -> Tuple[bytes, List[str]]:
         """
-        Convert a seed phrase into encoded shares.
+        Convert a seed phrase into a primary piece and encoded shares.
 
         Args:
             seed_words: List of 12 or 24 BIP39 words
@@ -30,7 +32,9 @@ class SeedGuard:
             password: Optional encryption password
 
         Returns:
-            List of encoded shares as strings
+            Tuple containing:
+                - Primary piece as bytes
+                - List of encoded shares as strings
 
         Raises:
             ValueError: If inputs are invalid
@@ -41,24 +45,31 @@ class SeedGuard:
         # Compress the indices
         compressed = self.compressor.compress(indices)
 
-        # Encrypt if password provided
-        data_to_split = self.encryptor.encrypt(compressed, password)
+        # Encrypt
+        encrypted = self.encryptor.encrypt(compressed, password)
 
-        # Split into shares
-        shares = self.shamir.split(data_to_split, shares_total, shares_required)
+        # Split into primary and secondary pieces
+        primary, secondary = self.splitter.split(encrypted)
+
+        # Split secondary piece into shares
+        shares = self.shamir.split(secondary, shares_total, shares_required)
 
         # Encode shares
-        return [self.encoder.encode_share(share) for share in shares]
+        encoded_shares = [self.encoder.encode_share(share) for share in shares]
+
+        return primary, encoded_shares
 
     def decode_shares(
         self, 
+        primary: bytes,
         shares: List[str],
         password: Optional[str] = None
     ) -> List[str]:
         """
-        Reconstruct seed phrase from shares.
+        Reconstruct seed phrase from primary piece and shares.
 
         Args:
+            primary: Primary piece as bytes
             shares: List of encoded shares
             password: Optional decryption password (must match encoding password)
 
@@ -71,14 +82,17 @@ class SeedGuard:
         # Decode shares from string format
         decoded_shares = [self.encoder.decode_share(share) for share in shares]
 
-        # Combine shares
-        combined = self.shamir.combine(decoded_shares)
+        # Combine shares to get secondary piece
+        secondary = self.shamir.combine(decoded_shares)
+
+        # Combine primary and secondary pieces
+        combined = self.splitter.combine(primary, secondary)
 
         # Decrypt if password provided
-        data_to_decompress = self.encryptor.decrypt(combined, password)
+        decrypted = self.encryptor.decrypt(combined, password)
 
         # Decompress to indices
-        indices = self.compressor.decompress(data_to_decompress)
+        indices = self.compressor.decompress(decrypted)
 
         # Convert indices back to words
         return self.bip39.indices_to_words(indices)

@@ -1,5 +1,5 @@
 class ShareEncoder:
-    CHARSET = "23456789ABCDEFGHJKLMNPQRTUXYabcdefhjkmnprtuy!@#$%^&*_-+=';<,>.?/|"
+    CHARSET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
     
     def __init__(self):
         self.REVERSE_LOOKUP = {char: idx for idx, char in enumerate(self.CHARSET)}

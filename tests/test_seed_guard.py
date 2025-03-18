@@ -26,27 +26,29 @@ class TestSeedGuard:
 
     def test_basic_encoding_decoding_no_password(self, seed_guard, valid_seed_12):
         """Test basic encoding and decoding without password"""
-        shares = seed_guard.encode_seed_phrase(
+        primary, shares = seed_guard.encode_seed_phrase(
             seed_words=valid_seed_12,
             shares_required=3,
             shares_total=5
         )
         
-        # Verify number of shares
+        # Verify number of shares and primary piece
         assert len(shares) == 5
+        assert isinstance(primary, bytes)
+        assert len(primary) > 0
         
         # Test reconstruction with exact number of required shares
-        recovered = seed_guard.decode_shares(shares[:3])
+        recovered = seed_guard.decode_shares(primary, shares[:3])
         assert recovered == valid_seed_12
         
         # Test reconstruction with more than required shares
-        recovered = seed_guard.decode_shares(shares[:4])
+        recovered = seed_guard.decode_shares(primary, shares[:4])
         assert recovered == valid_seed_12
 
     def test_encoding_decoding_with_password(self, seed_guard, valid_seed_24):
         """Test encoding and decoding with password"""
         password = "test_password123"
-        shares = seed_guard.encode_seed_phrase(
+        primary, shares = seed_guard.encode_seed_phrase(
             seed_words=valid_seed_24,
             shares_required=2,
             shares_total=3,
@@ -54,33 +56,33 @@ class TestSeedGuard:
         )
         
         # Test successful decoding with correct password
-        recovered = seed_guard.decode_shares(shares[:2], password=password)
+        recovered = seed_guard.decode_shares(primary, shares[:2], password=password)
         assert recovered == valid_seed_24
         
         # Test failed decoding with wrong password
         with pytest.raises(Exception):
-            seed_guard.decode_shares(shares[:2], password="wrong_password")
+            seed_guard.decode_shares(primary, shares[:2], password="wrong_password")
 
     def test_insufficient_shares(self, seed_guard, valid_seed_12):
         """Test error handling when providing insufficient shares"""
-        shares = seed_guard.encode_seed_phrase(
+        primary, shares = seed_guard.encode_seed_phrase(
             seed_words=valid_seed_12,
             shares_required=3,
             shares_total=5
         )
         
         with pytest.raises(ValueError, match="Insufficient shares"):
-            seed_guard.decode_shares(shares[:2])  # Only 2 shares when 3 required
+            seed_guard.decode_shares(primary, shares[:2])  # Only 2 shares when 3 required
 
     def test_invalid_share_combinations(self, seed_guard, valid_seed_12):
         """Test mixing shares from different encodings"""
-        shares1 = seed_guard.encode_seed_phrase(
+        primary1, shares1 = seed_guard.encode_seed_phrase(
             seed_words=valid_seed_12,
             shares_required=2,
             shares_total=3
         )
         
-        shares2 = seed_guard.encode_seed_phrase(
+        primary2, shares2 = seed_guard.encode_seed_phrase(
             seed_words=valid_seed_12,
             shares_required=2,
             shares_total=3
@@ -88,7 +90,7 @@ class TestSeedGuard:
         
         # Try to combine shares from different encodings
         with pytest.raises(ValueError):
-            seed_guard.decode_shares([shares1[0], shares2[0]])
+            seed_guard.decode_shares(primary1, [shares1[0], shares2[0]])
 
     def test_invalid_parameters(self, seed_guard, valid_seed_12):
         """Test invalid input parameters"""
@@ -140,12 +142,12 @@ class TestSeedGuard:
         
         # Test empty shares list
         with pytest.raises(ValueError):
-            seed_guard.decode_shares([])
+            seed_guard.decode_shares(b'primary', [])
 
     def test_mixed_password_scenarios(self, seed_guard, valid_seed_12):
         """Test mixing password and no-password scenarios"""
         # Encode with custom password
-        shares = seed_guard.encode_seed_phrase(
+        primary, shares = seed_guard.encode_seed_phrase(
             seed_words=valid_seed_12,
             shares_required=2,
             shares_total=3,
@@ -154,23 +156,48 @@ class TestSeedGuard:
         
         # Should fail when trying to decode with default password
         with pytest.raises(Exception):
-            seed_guard.decode_shares(shares[:2])  # Will use default password
+            seed_guard.decode_shares(primary, shares[:2])  # Will use default password
         
         # Should succeed when using correct password
-        recovered = seed_guard.decode_shares(shares[:2], password="test_password")
+        recovered = seed_guard.decode_shares(primary, shares[:2], password="test_password")
         assert recovered == valid_seed_12
 
         # Encode with default password
-        shares = seed_guard.encode_seed_phrase(
+        primary, shares = seed_guard.encode_seed_phrase(
             seed_words=valid_seed_12,
             shares_required=2,
             shares_total=3
         )
         
         # Should succeed when decoding with default password
-        recovered = seed_guard.decode_shares(shares[:2])  # Will use default password
+        recovered = seed_guard.decode_shares(primary, shares[:2])  # Will use default password
         assert recovered == valid_seed_12
 
         # Should fail when trying to decode with different password
         with pytest.raises(Exception):
-            seed_guard.decode_shares(shares[:2], password="test_password")
+            seed_guard.decode_shares(primary, shares[:2], password="test_password")
+
+    def test_invalid_primary_piece(self, seed_guard, valid_seed_12):
+        """Test invalid primary piece scenarios"""
+        primary, shares = seed_guard.encode_seed_phrase(
+            seed_words=valid_seed_12,
+            shares_required=2,
+            shares_total=3
+        )
+
+        # Test with empty primary piece
+        with pytest.raises(ValueError):
+            seed_guard.decode_shares(b'', shares[:2])
+
+        # Test with modified primary piece
+        with pytest.raises(Exception):
+            seed_guard.decode_shares(primary + b'extra', shares[:2])
+
+        # Test with wrong primary piece
+        other_primary, _ = seed_guard.encode_seed_phrase(
+            seed_words=valid_seed_12,
+            shares_required=2,
+            shares_total=3
+        )
+        with pytest.raises(Exception):
+            seed_guard.decode_shares(other_primary, shares[:2])
