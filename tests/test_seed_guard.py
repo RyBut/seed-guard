@@ -87,7 +87,9 @@ class TestSeedGuard:
         )
         
         # Try to combine shares from different encodings
-        with pytest.raises(ValueError):
+        # Should fail during decryption with InvalidTag
+        from cryptography.exceptions import InvalidTag
+        with pytest.raises(InvalidTag):
             seed_guard.decode_shares(primary1, [shares1[0], shares2[0]])
 
     def test_invalid_parameters(self, seed_guard, valid_seed_12):

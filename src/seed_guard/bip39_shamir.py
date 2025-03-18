@@ -47,6 +47,18 @@ class BIP39Shamir:
             result = (result * x + coeff) % prime
         return result
 
+    def _generate_unique_x_coordinates(self, count: int) -> List[int]:
+        """Generate 'count' unique random x-coordinates between 1 and 255"""
+        if count > 255:
+            raise ValueError("Cannot generate more than 255 unique x-coordinates")
+        # Create a set of random values until we have enough unique ones
+        x_coords = set()
+        while len(x_coords) < count:
+            x = int.from_bytes(os.urandom(1), 'big')
+            if x != 0:  # Exclude 0
+                x_coords.add(x)
+        return sorted(list(x_coords))  # Sort for deterministic ordering
+
     def split(self, secret: bytes, shares: int, threshold: int) -> List[bytes]:
         if threshold > shares:
             raise ValueError("Threshold cannot be greater than total shares")
@@ -68,12 +80,15 @@ class BIP39Shamir:
         # Generate polynomial coefficients
         coefficients = self._generate_polynomial(secret_int, threshold, prime)
         
+        # Generate random x-coordinates
+        x_coordinates = self._generate_unique_x_coordinates(shares)
+        
         # Generate shares
         share_points = []
-        for i in range(1, shares + 1):
-            y = self._evaluate_polynomial(coefficients, i, prime)
+        for x in x_coordinates:
+            y = self._evaluate_polynomial(coefficients, x, prime)
             # Format: field_index (1 byte) || threshold (1 byte) || x (1 byte) || y (variable)
-            share_bytes = bytes([field_index, threshold, i]) + \
+            share_bytes = bytes([field_index, threshold, x]) + \
                          y.to_bytes((y.bit_length() + 7) // 8, 'big')
             share_points.append(share_bytes)
 
