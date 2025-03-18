@@ -4,7 +4,22 @@ from typing import List, Tuple
 class BIP39Shamir:
     # Prime fields for different secret sizes
     PRIME_FIELDS = [
-        (16, 2**127 - 1),      # For secrets up to 16 bytes
+        (1, 257),
+        (2, 65537),
+        (3, 16777259),
+        (4, 4294967311),
+        (5, 1099511627791),
+        (6, 281474976710677),
+        (7, 72057594037928017),
+        (8, 18446744073709551629),
+        (9, 4722366482869645213711),
+        (10, 1208925819614629174706189),
+        (11, 309485009821345068724781063),
+        (12, 79228162514264337593543950397),
+        (13, 20282409603651670423947251286127),
+        (14, 5192296858534827628530496329220121),
+        (15, 1329227995784915872903807060280345027),
+        (16, 340282366920938463463374607431768211507),      # For secrets up to 16 bytes
         (32, 2**255 - 19),     # For secrets up to 32 bytes
         (64, 2**511 - 187),    # For secrets up to 64 bytes
         (128, 2**1023 - 357)   # For secrets up to 128 bytes
@@ -20,8 +35,10 @@ class BIP39Shamir:
 
     def _generate_polynomial(self, secret_int: int, threshold: int, prime: int) -> List[int]:
         coeff = [secret_int]
+        # Use coefficient size based on secret size
+        coeff_bytes = max(len(secret_int.to_bytes((secret_int.bit_length() + 7) // 8, 'big')), 4)
         for _ in range(threshold - 1):
-            coeff.append(int.from_bytes(os.urandom(24), 'big') % prime)
+            coeff.append(int.from_bytes(os.urandom(coeff_bytes), 'big') % prime)
         return coeff
 
     def _evaluate_polynomial(self, coefficients: List[int], x: int, prime: int) -> int:
