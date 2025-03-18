@@ -8,7 +8,6 @@ class TestSeedGuard:
     
     @pytest.fixture
     def valid_seed_12(self):
-        # Using real BIP39 words for testing
         return [
             "abandon", "ability", "able", "about", "above", "absent",
             "absorb", "abstract", "absurd", "abuse", "access", "accident"
@@ -16,7 +15,6 @@ class TestSeedGuard:
     
     @pytest.fixture
     def valid_seed_24(self):
-        # Using real BIP39 words for testing
         return [
             "abandon", "ability", "able", "about", "above", "absent",
             "absorb", "abstract", "absurd", "abuse", "access", "accident",
@@ -34,7 +32,7 @@ class TestSeedGuard:
         
         # Verify number of shares and primary piece
         assert len(shares) == 5
-        assert isinstance(primary, bytes)
+        assert isinstance(primary, str)
         assert len(primary) > 0
         
         # Test reconstruction with exact number of required shares
@@ -142,7 +140,7 @@ class TestSeedGuard:
         
         # Test empty shares list
         with pytest.raises(ValueError):
-            seed_guard.decode_shares(b'primary', [])
+            seed_guard.decode_shares("", [])
 
     def test_mixed_password_scenarios(self, seed_guard, valid_seed_12):
         """Test mixing password and no-password scenarios"""
@@ -187,11 +185,11 @@ class TestSeedGuard:
 
         # Test with empty primary piece
         with pytest.raises(ValueError):
-            seed_guard.decode_shares(b'', shares[:2])
+            seed_guard.decode_shares("", shares[:2])
 
-        # Test with modified primary piece
-        with pytest.raises(Exception):
-            seed_guard.decode_shares(primary + b'extra', shares[:2])
+        # Test with invalid format primary piece
+        with pytest.raises(ValueError):
+            seed_guard.decode_shares("invalid_format", shares[:2])
 
         # Test with wrong primary piece
         other_primary, _ = seed_guard.encode_seed_phrase(
