@@ -144,7 +144,7 @@ class TestSeedGuard:
 
     def test_mixed_password_scenarios(self, seed_guard, valid_seed_12):
         """Test mixing password and no-password scenarios"""
-        # Encode with password, try to decode without
+        # Encode with custom password
         shares = seed_guard.encode_seed_phrase(
             seed_words=valid_seed_12,
             shares_required=2,
@@ -152,16 +152,25 @@ class TestSeedGuard:
             password="test_password"
         )
         
+        # Should fail when trying to decode with default password
         with pytest.raises(Exception):
-            seed_guard.decode_shares(shares[:2])  # No password provided
+            seed_guard.decode_shares(shares[:2])  # Will use default password
         
-        # Encode without password, try to decode with password
+        # Should succeed when using correct password
+        recovered = seed_guard.decode_shares(shares[:2], password="test_password")
+        assert recovered == valid_seed_12
+
+        # Encode with default password
         shares = seed_guard.encode_seed_phrase(
             seed_words=valid_seed_12,
             shares_required=2,
             shares_total=3
         )
         
-        # Should still work as encryption step was skipped
-        recovered = seed_guard.decode_shares(shares[:2], password="test_password")
+        # Should succeed when decoding with default password
+        recovered = seed_guard.decode_shares(shares[:2])  # Will use default password
         assert recovered == valid_seed_12
+
+        # Should fail when trying to decode with different password
+        with pytest.raises(Exception):
+            seed_guard.decode_shares(shares[:2], password="test_password")

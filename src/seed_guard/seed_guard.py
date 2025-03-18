@@ -42,9 +42,7 @@ class SeedGuard:
         compressed = self.compressor.compress(indices)
 
         # Encrypt if password provided
-        data_to_split = compressed
-        if password is not None:
-            data_to_split = self.encryptor.encrypt(compressed, password)
+        data_to_split = self.encryptor.encrypt(compressed, password)
 
         # Split into shares
         shares = self.shamir.split(data_to_split, shares_total, shares_required)
@@ -77,9 +75,7 @@ class SeedGuard:
         combined = self.shamir.combine(decoded_shares)
 
         # Decrypt if password provided
-        data_to_decompress = combined
-        if password is not None:
-            data_to_decompress = self.encryptor.decrypt(combined, password)
+        data_to_decompress = self.encryptor.decrypt(combined, password)
 
         # Decompress to indices
         indices = self.compressor.decompress(data_to_decompress)
