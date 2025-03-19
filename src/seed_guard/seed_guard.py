@@ -13,7 +13,7 @@ class SeedGuard:
         self.encryptor = BIP39Encryptor()
         self.shamir = BIP39Shamir()
         self.encoder = ShareEncoder()
-        self.splitter = SecretSplitter(split_ratio=0.95)
+        self.splitter = SecretSplitter(split_ratio=0.9)
 
     def encode_seed_phrase(
         self, 
