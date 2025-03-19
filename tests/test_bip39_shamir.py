@@ -1,6 +1,6 @@
 import pytest
 from itertools import combinations
-from seed_guard.bip39_shamir import BIP39Shamir
+from seed_guard._bip39_shamir import BIP39Shamir
 
 @pytest.fixture
 def shamir():

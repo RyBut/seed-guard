@@ -1,10 +1,10 @@
 from typing import List, Optional, Tuple
-from .bip39 import BIP39
-from .bip39_compression import BIP39Compression
-from .bip39_encryptor import BIP39Encryptor
-from .bip39_shamir import BIP39Shamir
-from .share_encoder import ShareEncoder
-from .secret_splitter import SecretSplitter
+from ._bip39 import BIP39
+from ._bip39_compression import BIP39Compression
+from ._bip39_encryptor import BIP39Encryptor
+from ._bip39_shamir import BIP39Shamir
+from ._share_encoder import ShareEncoder
+from ._secret_splitter import SecretSplitter
 
 class SeedGuard:
     def __init__(self):

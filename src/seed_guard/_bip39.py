@@ -1,6 +1,6 @@
 from typing import List, Optional
-from .bip39_wordlist import WORDLIST
-from .mnenomic_length import MnemonicLength
+from ._bip39_wordlist import WORDLIST
+from ._mnenomic_length import MnemonicLength
 
 class BIP39:
     """

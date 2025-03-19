@@ -1,5 +1,5 @@
 import pytest
-from seed_guard.secret_splitter import SecretSplitter
+from seed_guard._secret_splitter import SecretSplitter
 
 class TestSecretSplitter:
     def test_init_valid_ratio(self):

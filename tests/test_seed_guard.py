@@ -1,5 +1,5 @@
 import pytest
-from seed_guard.seed_guard import SeedGuard
+from seed_guard import SeedGuard
 
 class TestSeedGuard:
     @pytest.fixture

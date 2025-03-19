@@ -1,5 +1,5 @@
 import pytest
-from seed_guard.share_encoder import ShareEncoder
+from seed_guard._share_encoder import ShareEncoder
 
 @pytest.fixture
 def encoder():

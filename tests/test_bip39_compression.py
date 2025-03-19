@@ -1,6 +1,6 @@
 import random
 import pytest
-from seed_guard.bip39_compression import BIP39Compression
+from seed_guard._bip39_compression import BIP39Compression
 
 @pytest.fixture
 def compressor():

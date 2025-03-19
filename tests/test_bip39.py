@@ -1,6 +1,6 @@
 import pytest
-from seed_guard.bip39 import BIP39
-from seed_guard.mnenomic_length import MnemonicLength
+from seed_guard._bip39 import BIP39
+from seed_guard._mnenomic_length import MnemonicLength
 
 @pytest.fixture
 def bip39():
