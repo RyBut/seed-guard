@@ -1,0 +1,33 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "seed_guard"  # Changed to underscore to match import name
+version = "0.1.0"
+authors = [
+  { name="Ryan Butler", email="RyBut@mail.rybot.ca" },
+]
+description = "Secure seed phrase backup using Shamir's Secret Sharing"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+  "cryptography>=36.0.0",
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/RyBut/seed-guard"
+"Bug Tracker" = "https://github.com/RyBut/seed-guard/issues"
+
+# Add this section to tell hatchling where to find packages
+[tool.hatch.build.targets.wheel]
+packages = ["src/seed_guard"]
+
+# Define where packages are located
+[tool.hatch.build]
+packages = ["src"]
