@@ -1,4 +1,4 @@
-from .seed_guard import SeedGuard as _SeedGuard
+from ._seed_guard_impl import SeedGuard as _SeedGuard
 
 class SeedGuard:
     """
