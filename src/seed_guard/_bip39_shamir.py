@@ -106,7 +106,7 @@ class BIP39Shamir:
         threshold = shares[0][1]
         
         if len(shares) < threshold:
-            raise ValueError(f"Insufficient shares: need at least {threshold}")
+            raise ValueError(f"Insufficient shares provided")
 
         if field_index >= len(self.PRIME_FIELDS):
             raise ValueError("Invalid field index")

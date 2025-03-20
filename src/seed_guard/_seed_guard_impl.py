@@ -8,12 +8,12 @@ from ._secret_splitter import SecretSplitter
 
 class SeedGuard:
     def __init__(self):
-        self.bip39 = BIP39()
-        self.compressor = BIP39Compression()
-        self.encryptor = BIP39Encryptor()
-        self.shamir = BIP39Shamir()
-        self.encoder = ShareEncoder()
-        self.splitter = SecretSplitter(split_ratio=0.9)
+        self._bip39 = BIP39()
+        self._compressor = BIP39Compression()
+        self._encryptor = BIP39Encryptor()
+        self._shamir = BIP39Shamir()
+        self._encoder = ShareEncoder()
+        self._splitter = SecretSplitter(split_ratio=0.9)
 
     def encode_seed_phrase(
         self, 
@@ -40,25 +40,25 @@ class SeedGuard:
             ValueError: If inputs are invalid
         """
         # Validate and convert seed phrase to indices
-        indices = self.bip39.words_to_indices(seed_words)
+        indices = self._bip39.words_to_indices(seed_words)
 
         # Compress the indices
-        compressed = self.compressor.compress(indices)
+        compressed = self._compressor.compress(indices)
 
         # Encrypt
-        encrypted = self.encryptor.encrypt(compressed, password)
+        encrypted = self._encryptor.encrypt(compressed, password)
 
         # Split into primary and secondary pieces
-        primary, secondary = self.splitter.split(encrypted)
+        primary, secondary = self._splitter.split(encrypted)
 
         # Encode primary piece
-        encoded_primary = self.encoder.encode_share(primary)
+        encoded_primary = self._encoder.encode_share(primary)
 
         # Split secondary piece into shares
-        shares = self.shamir.split(secondary, shares_total, shares_required)
+        shares = self._shamir.split(secondary, shares_total, shares_required)
 
         # Encode shares
-        encoded_shares = [self.encoder.encode_share(share) for share in shares]
+        encoded_shares = [self._encoder.encode_share(share) for share in shares]
 
         return encoded_primary, encoded_shares
 
@@ -83,22 +83,22 @@ class SeedGuard:
             ValueError: If shares are invalid or insufficient
         """
         # Decode primary piece
-        primary = self.encoder.decode_share(encoded_primary)
+        primary = self._encoder.decode_share(encoded_primary)
 
         # Decode shares from string format
-        decoded_shares = [self.encoder.decode_share(share) for share in shares]
+        decoded_shares = [self._encoder.decode_share(share) for share in shares]
 
         # Combine shares to get secondary piece
-        secondary = self.shamir.combine(decoded_shares)
+        secondary = self._shamir.combine(decoded_shares)
 
         # Combine primary and secondary pieces
-        combined = self.splitter.combine(primary, secondary)
+        combined = self._splitter.combine(primary, secondary)
 
         # Decrypt if password provided
-        decrypted = self.encryptor.decrypt(combined, password)
+        decrypted = self._encryptor.decrypt(combined, password)
 
         # Decompress to indices
-        indices = self.compressor.decompress(decrypted)
+        indices = self._compressor.decompress(decrypted)
 
         # Convert indices back to words
-        return self.bip39.indices_to_words(indices)
+        return self._bip39.indices_to_words(indices)
